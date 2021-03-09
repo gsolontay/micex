@@ -1,10 +1,7 @@
-/***********************
-***	www.solontay.com ***
-************************/
-
-/***********************
-** georgy@solontay.com *
-************************/
+/***************************
+ ***  www.solontay.com   ***
+ *** georgy@solontay.com ***
+ ***************************/
 
 #pragma comment(lib, "micex_md_142.lib")
 #include "micex_md_142.h"
@@ -24,6 +21,7 @@ const int _t_height = 18;
 const size_t _x_instr = 8;
 const size_t _y_instr = 2;
 const size_t _instr = _x_instr * _y_instr;
+const double _ulTimer = 5;
 
 int wWidth, wHeight;
 
@@ -129,7 +127,7 @@ inline bool ulca(const size_t i, const size_t l) {
     if (!ask[i][l].ul) return false;
     LARGE_INTEGER ct;
     QueryPerformanceCounter(&ct);
-    if (double(ct.QuadPart - ask[i][l].timer.QuadPart) / freq.QuadPart > 10.0) {
+    if (double(ct.QuadPart - ask[i][l].timer.QuadPart) / freq.QuadPart > _ulTimer) {
         ask[i][l].ul = false;
         return true;
     }
@@ -142,7 +140,7 @@ inline bool ulcb(const size_t i, const size_t l) {
     if (!bid[i][l].ul) return false;
     LARGE_INTEGER ct;
     QueryPerformanceCounter(&ct);
-    if (double(ct.QuadPart - bid[i][l].timer.QuadPart) / freq.QuadPart > 10.0) {
+    if (double(ct.QuadPart - bid[i][l].timer.QuadPart) / freq.QuadPart > _ulTimer) {
         bid[i][l].ul = false;
         return true;
     }
@@ -262,7 +260,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             QueryPerformanceCounter(&ct);
             SetBkColor(HDC(wParam), _bkRGB);
             ctAskLocker[_i].lock();
-            if (ask[_i].size() > _l && double(ct.QuadPart - ask[_i][_l].timer.QuadPart) / freq.QuadPart < 10.0) {
+            if (ask[_i].size() > _l && double(ct.QuadPart - ask[_i][_l].timer.QuadPart) / freq.QuadPart < _ulTimer) {
                 ctAskLocker[_i].unlock();
                 SetTextColor(HDC(wParam), RGB(220, 0, 0));
                 SetBkColor(HDC(wParam), _aBkRGB);
@@ -281,7 +279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             LARGE_INTEGER ct;
             QueryPerformanceCounter(&ct);
             ctBidLocker[_i].lock();
-            if (bid[_i].size() > _l && double(ct.QuadPart - bid[_i][_l].timer.QuadPart) / freq.QuadPart < 10.0) {
+            if (bid[_i].size() > _l && double(ct.QuadPart - bid[_i][_l].timer.QuadPart) / freq.QuadPart < _ulTimer) {
                 ctBidLocker[_i].unlock();
                 SetTextColor(HDC(wParam), RGB(0, 130, 0));
                 SetBkColor(HDC(wParam), _bBkRGB);
@@ -370,8 +368,14 @@ void onError() {
 
 
 void recStart(const size_t instr) {
+    instrBidLocker[instr].lock();
     bid[instr].clear();
+    wBidPxChange[instr] = 0;
+    instrBidLocker[instr].unlock();
+    instrAskLocker[instr].lock();
     ask[instr].clear();
+    wAskPxChange[instr] = 0;
+    instrAskLocker[instr].unlock();
 }
 
 void recStop(const size_t instr) {
